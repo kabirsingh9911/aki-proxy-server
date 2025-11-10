@@ -1,16 +1,36 @@
+// ===============================
+// 🌟 Atlas MD Akinator Proxy Server
+// Created by Sten-X 💫
+// ===============================
+
 const express = require("express");
 const cors = require("cors");
-const Aki = require("aki-api");
-
+const Aki = require("aki-api"); // npm install aki-api
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// 🌀 Start Akinator
+// 🏁 Test Route
+app.get("/", (req, res) => {
+  res.json({
+    status: "online",
+    message: "🧞‍♂️ Akinator Proxy Server is running! 💫",
+    endpoints: {
+      start: "/start?region=en&type=character",
+      answer: "/answer?session=xxx&signature=xxx&step=0&answer=0",
+      guess: "/guess?session=xxx&signature=xxx&step=0",
+    },
+  });
+});
+
+// 🎮 Start a new game
 app.get("/start", async (req, res) => {
   try {
     const region = req.query.region || "en";
-    const aki = new Aki({ region });
+    const type = req.query.type || "character";
+
+    const aki = new Aki({ region, childMode: false });
     await aki.start();
 
     res.json({
@@ -18,56 +38,55 @@ app.get("/start", async (req, res) => {
       signature: aki.signature,
       question: aki.question,
       step: aki.currentStep,
-      region,
     });
   } catch (err) {
-    console.error("❌ Start error:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("Akinator start error:", err.message);
+    res.status(500).json({ error: "Failed to start Akinator session 😿" });
   }
 });
 
-// 🧠 Answer Akinator
+// ❓ Answer a question
 app.get("/answer", async (req, res) => {
   try {
     const { session, signature, step, answer } = req.query;
-    if (!session || !signature)
-      return res.status(400).json({ error: "Missing session/signature" });
+    if (!session || !signature) {
+      return res.status(400).json({ error: "Missing session or signature!" });
+    }
 
-    const aki = new Aki({ region: "en", session, signature, step });
-    await aki.step(answer);
+    const aki = new Aki({ session, signature, step });
+    await aki.step(parseInt(answer));
 
     res.json({
       question: aki.question,
       step: aki.currentStep,
       progress: aki.progress,
-      answers: aki.answers,
     });
   } catch (err) {
-    console.error("❌ Answer error:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("Akinator answer error:", err.message);
+    res.status(500).json({ error: "Failed to answer Akinator question 😿" });
   }
 });
 
-// 🔮 Guess Akinator
+// 🧠 Make a guess
 app.get("/guess", async (req, res) => {
   try {
     const { session, signature, step } = req.query;
-    if (!session || !signature)
-      return res.status(400).json({ error: "Missing session/signature" });
+    if (!session || !signature) {
+      return res.status(400).json({ error: "Missing session or signature!" });
+    }
 
-    const aki = new Aki({ region: "en", session, signature, step });
+    const aki = new Aki({ session, signature, step });
     await aki.win();
 
     res.json({
-      guess: aki.answers[0],
-      description: aki.answers[0]?.description,
-      image: aki.answers[0]?.absolute_picture_path,
+      name: aki.answers[0].name,
+      description: aki.answers[0].description,
+      image: aki.answers[0].absolute_picture_path,
     });
   } catch (err) {
-    console.error("❌ Guess error:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("Akinator guess error:", err.message);
+    res.status(500).json({ error: "Failed to fetch Akinator guess 😿" });
   }
 });
 
-// ✅ Export app for Vercel
-module.exports = app;
+module.exports = app; // ✅ Important: Don't use app.listen()
